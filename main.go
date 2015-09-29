@@ -46,6 +46,43 @@ type Message struct {
 	Headers mail.Header
 }
 
+func parseStringIntoAddress(str string) (address *mail.Address, err error) {
+	// init addr
+	address = &mail.Address{}
+
+	// do split on space, and remove blanks and quotes
+	cleaned := strings.Replace(str, "\"", "", -1)
+	cleaned = strings.Replace(cleaned, "<", "", -1)
+	cleaned = strings.Replace(cleaned, ">", "", -1)
+
+	spl := strings.Split(cleaned, " ")
+	var arrToCheck []string
+
+	for _, val := range spl {
+		newVal := strings.TrimSpace(val)
+
+		if newVal != "" {
+			arrToCheck = append(arrToCheck, newVal)
+		}
+	}
+
+	if len(arrToCheck) == 0 {
+		err = errors.New("Provided address is invalid.")
+		return
+	}
+
+	// extract email
+	address.Address = arrToCheck[len(arrToCheck)-1]
+
+	// extract name
+	if len(arrToCheck) > 1 {
+		// set FullName
+		address.Name = strings.Join(arrToCheck[:len(arrToCheck)-1], " ")
+	}
+
+	return
+}
+
 // appendMailAddresses parses any number of addresses and appends them to a
 // destination slice. If any of the addresses fail to parse, none of them are
 // appended.
@@ -54,7 +91,7 @@ func appendMailAddresses(dest *[]mail.Address, addresses ...string) error {
 	var err error
 
 	for _, address := range addresses {
-		parsed, err := mail.ParseAddress(address)
+		parsed, err := parseStringIntoAddress(address)
 		if err != nil {
 			return err
 		}
@@ -67,7 +104,7 @@ func appendMailAddresses(dest *[]mail.Address, addresses ...string) error {
 
 // setMailAddress parses an address and sets it to a destination mail address.
 func setMailAddress(dest *mail.Address, address string) error {
-	parsed, err := mail.ParseAddress(address)
+	parsed, err := parseStringIntoAddress(address)
 	if err != nil {
 		return err
 	}
